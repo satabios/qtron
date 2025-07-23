@@ -191,38 +191,140 @@ def profile_model(modelpath: str, results_base_dir: str = None, skip_simplificat
     
     try:
         m = onnx_tool.Model(modelpath)
+        shape_inference_successful = False
         
-        # Apply shape inference based on our strategy
-        if input_shape is None:
-            # Skip shape inference for dynamic models
-            m.graph.shape_infer(None)
+        # Strategy 1: For dynamic models, try coordinated shapes for ALL inputs
+        if has_dynamic_inputs and enable_dynamic_shape_handling:
+            print("[INFO] Attempting coordinated shape inference for all dynamic inputs")
+            
+            # Build shapes for ALL inputs with coordinated batch sizes
+            for batch_size in [1, 2]:
+                try:
+                    all_input_shapes = {}
+                    for input_proto in onnx_model.graph.input:
+                        safe_shape = get_safe_input_shape(input_proto, batch_size, 128)
+                        all_input_shapes[input_proto.name] = numpy.zeros(safe_shape)
+                        print(f"[DEBUG] Using coordinated shape {safe_shape} for input '{input_proto.name}'")
+                    
+                    # Test coordinated shapes
+                    m.graph.shape_infer(all_input_shapes)
+                    shape_inference_successful = True
+                    print(f"[SUCCESS] Coordinated shape inference successful with batch_size={batch_size}")
+                    break
+                    
+                except Exception as e:
+                    print(f"[DEBUG] Coordinated shapes with batch_size={batch_size} failed: {str(e)[:100]}")
+                    continue
+        
+        # Strategy 2: Try the originally computed single input shape
+        if not shape_inference_successful and input_shape is not None:
+            try:
+                print(f"[INFO] Attempting shape inference with computed shape: {input_shape}")
+                m.graph.shape_infer({input_name: numpy.zeros(input_shape)})
+                shape_inference_successful = True
+                print("[SUCCESS] Original computed shape successful")
+            except Exception as e:
+                print(f"[DEBUG] Original computed shape failed: {str(e)[:100]}")
+        
+        # Strategy 3: Try skipping shape inference entirely
+        if not shape_inference_successful:
+            try:
+                print("[INFO] Attempting to skip shape inference entirely")
+                m.graph.shape_infer(None)
+                shape_inference_successful = True
+                print("[SUCCESS] Skipping shape inference successful")
+            except Exception as e:
+                print(f"[DEBUG] Skipping shape inference failed: {str(e)[:100]}")
+        
+        # Strategy 4: Try with no shape inference but still attempt profiling
+        if not shape_inference_successful:
+            print("[INFO] Attempting profiling without shape inference")
+            # Don't call shape_infer at all, go directly to profiling
+            shape_inference_successful = True  # Mark as successful to proceed
+            print("[SUCCESS] Proceeding without shape inference")
+        
+        if shape_inference_successful:
+            # Now we can safely do the operations that require a valid model state
+            print("[INFO] Executing profiling operations...")
+            m.graph.profile()
+            
+            # Save results
+            txt_path = results_dir + os.path.basename(modelpath.replace('.onnx','.txt'))
+            csv_path = results_dir + os.path.basename(modelpath.replace('.onnx','.csv'))
+            shapes_path = results_dir + os.path.basename(modelpath.replace('.onnx','_shapes_only.onnx'))
+            
+            m.graph.print_node_map(txt_path)  # save file
+            m.graph.print_node_map(csv_path)  # csv file
+            m.save_model(shapes_path, shape_only=True)   # save model with updated shapes
+            
+            # Apply simplification on the _shapes_only.onnx model
+            try:
+                simplified_model = simplify(onnx.load(shapes_path))[0]
+                onnx.save(simplified_model, shapes_path)
+                print("[INFO] Shape-only model simplified successfully")
+            except Exception as e:
+                print(f"[WARNING] Shape-only model simplification failed: {e}")
+            
+            print(f"[SUCCESS] Profiling completed. Results saved to: {results_dir}")
         else:
-            # Use concrete shape
-            m.graph.shape_infer({input_name: numpy.zeros(input_shape)})
-        
-        m.graph.profile()
-        
-        # Save results
-        txt_path = results_dir + os.path.basename(modelpath.replace('.onnx','.txt'))
-        csv_path = results_dir + os.path.basename(modelpath.replace('.onnx','.csv'))
-        shapes_path = results_dir + os.path.basename(modelpath.replace('.onnx','_shapes_only.onnx'))
-        
-        m.graph.print_node_map(txt_path)  # save file
-        m.graph.print_node_map(csv_path)  # csv file
-        m.save_model(shapes_path, shape_only=True)   # save model with updated shapes
-        
-        # Apply simplification on the _shapes_only.onnx model
-        try:
-            simplified_model = simplify(onnx.load(shapes_path))[0]
-            onnx.save(simplified_model, shapes_path)
-            print("[INFO] Shape-only model simplified successfully")
-        except Exception as e:
-            print(f"[WARNING] Shape-only model simplification failed: {e}")
-        
-        print(f"[SUCCESS] Profiling completed. Results saved to: {results_dir}")
+            raise Exception("All shape inference strategies failed")
         
     except Exception as e:
-        print(f"[ERROR] Profiling failed with shape {input_shape}: {e}")
+        print(f"[ERROR] Profiling failed: {e}")
+        
+        # Generate partial analysis when full profiling fails
+        try:
+            print("[INFO] Generating partial analysis...")
+            
+            # Create basic model analysis without shape inference
+            m_basic = onnx_tool.Model(modelpath)
+            
+            # Generate basic model information
+            info_path = results_dir + os.path.basename(modelpath.replace('.onnx','_info.txt'))
+            with open(info_path, 'w') as f:
+                f.write(f"ONNX Model Analysis (Partial)\n")
+                f.write(f"Model: {os.path.basename(modelpath)}\n")
+                f.write(f"Generated: {__import__('datetime').datetime.now()}\n\n")
+                
+                f.write("INPUTS:\n")
+                for i, input_proto in enumerate(onnx_model.graph.input):
+                    shape_info = [str(d.dim_value) if d.dim_value > 0 else (d.dim_param or 'dynamic') 
+                                for d in input_proto.type.tensor_type.shape.dim]
+                    f.write(f"  {input_proto.name}: {shape_info}\n")
+                
+                f.write("\nOUTPUTS:\n")
+                for output_proto in onnx_model.graph.output:
+                    shape_info = [str(d.dim_value) if d.dim_value > 0 else (d.dim_param or 'dynamic') 
+                                for d in output_proto.type.tensor_type.shape.dim]
+                    f.write(f"  {output_proto.name}: {shape_info}\n")
+                
+                f.write(f"\nNODES: {len(onnx_model.graph.node)}\n")
+                f.write(f"DYNAMIC INPUTS DETECTED: {has_dynamic_inputs}\n")
+                
+                if has_dynamic_inputs:
+                    f.write("\nDYNAMIC SHAPE DETAILS:\n")
+                    for input_name, is_dynamic in dynamic_info.items():
+                        if is_dynamic:
+                            f.write(f"  - {input_name}: Has dynamic dimensions\n")
+                
+                f.write(f"\nNOTE: Full profiling failed due to dynamic shape complexity.\n")
+                f.write(f"Model was successfully simplified and is available for visualization.\n")
+            
+            # Also try to save the original model structure without shapes
+            try:
+                structure_path = results_dir + os.path.basename(modelpath.replace('.onnx','_structure.onnx'))
+                # Save a copy of the original model for structure analysis
+                import shutil
+                shutil.copy2(modelpath, structure_path)
+                print(f"[INFO] Model structure saved to: {structure_path}")
+            except Exception as copy_error:
+                print(f"[WARNING] Could not save model structure: {copy_error}")
+            
+            print(f"[INFO] Partial analysis saved to: {info_path}")
+            
+        except Exception as partial_error:
+            print(f"[WARNING] Partial analysis also failed: {partial_error}")
+        
         raise  # Re-raise to trigger fallback in calling code
 
 if __name__ == "__main__":

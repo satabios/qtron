@@ -7,7 +7,7 @@
         "type": "github",
         "url": "https://github.com/satabios/qtron"
     },
-    "version": "1.0.3",
+    "version": "1.0.5",
     "publisher": "satabios",
     "icon": "onnxviewer_128.png",
     "engines": {

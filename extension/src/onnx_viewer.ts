@@ -139,13 +139,19 @@ class OnnxDocument implements vscode.CustomDocument {
                     const scriptArgs = [simplifyScript, inputPath, tempFile];
                     if (enableOnnxToolProfiling) {
                         scriptArgs.push('true'); // enable_profiling
-                        scriptArgs.push(onnxToolResultsPath); // results_dir
+                        // Ensure we always pass a valid results_dir - use "DEFAULT" if empty
+                        const resultsDir = onnxToolResultsPath && onnxToolResultsPath.trim() ? onnxToolResultsPath : 'DEFAULT';
+                        scriptArgs.push(resultsDir); // results_dir
                         scriptArgs.push(enableDynamicShapeHandling ? 'true' : 'false'); // enable_dynamic_shapes
                     } else {
                         scriptArgs.push('false'); // disable profiling
+                        // Even when profiling is disabled, we need to maintain argument positions
+                        scriptArgs.push('DEFAULT'); // results_dir placeholder
+                        scriptArgs.push('false'); // disable dynamic shapes
                     }
                     
                     outputChannel.appendLine(`[QTron] Running: ${pythonPath} ${scriptArgs.join(' ')}`);
+                    outputChannel.appendLine(`[QTron] Arguments: [${scriptArgs.map(arg => `"${arg}"`).join(', ')}]`);
                     
                     let processCompleted = false;
                     const child = execFile(

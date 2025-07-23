@@ -59,12 +59,22 @@ def main():
     input_path = sys.argv[1]
     output_path = sys.argv[2]
     enable_profiling = len(sys.argv) > 3 and sys.argv[3].lower() == 'true'
-    results_dir = sys.argv[4] if len(sys.argv) > 4 else None
+    results_dir = sys.argv[4] if len(sys.argv) > 4 and sys.argv[4] not in ['', 'DEFAULT'] else None
     enable_dynamic_shapes = len(sys.argv) > 5 and sys.argv[5].lower() == 'true'
 
     print(f"Loading ONNX model: {input_path}")
     if enable_profiling:
         print(f"Dynamic shape handling: {'enabled' if enable_dynamic_shapes else 'disabled'}")
+        if results_dir:
+            print(f"Results directory: {results_dir}")
+        else:
+            print("Results directory: default (next to model file)")
+        
+    # Debug: Print all arguments received
+    print(f"[DEBUG] Arguments received: {sys.argv}")
+    print(f"[DEBUG] enable_profiling: {enable_profiling}")
+    print(f"[DEBUG] results_dir: {results_dir}")
+    print(f"[DEBUG] enable_dynamic_shapes: {enable_dynamic_shapes}")
     
     # Ensure output directory exists
     output_dir = os.path.dirname(output_path)
