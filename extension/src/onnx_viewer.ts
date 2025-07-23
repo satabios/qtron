@@ -57,6 +57,7 @@ class OnnxDocument implements vscode.CustomDocument {
         const enableSimplification = config.get<boolean>('enableSimplification') ?? true;
         const enableOnnxToolProfiling = config.get<boolean>('enableOnnxToolProfiling') ?? true;
         const onnxToolResultsPath = config.get<string>('onnxToolResultsPath') || '';
+        const enableDynamicShapeHandling = config.get<boolean>('enableDynamicShapeHandling') ?? true;
 
         // Use shared output channel
         const outputChannel = getOutputChannel();
@@ -64,6 +65,9 @@ class OnnxDocument implements vscode.CustomDocument {
         outputChannel.appendLine(`[QTron] File: ${inputPath}`);
         outputChannel.appendLine(`[QTron] Simplification enabled: ${enableSimplification}`);
         outputChannel.appendLine(`[QTron] onnx_tool profiling enabled: ${enableOnnxToolProfiling}`);
+        if (enableOnnxToolProfiling) {
+            outputChannel.appendLine(`[QTron] Dynamic shape handling enabled: ${enableDynamicShapeHandling}`);
+        }
         outputChannel.show();
 
         // Check if simplification is enabled
@@ -136,6 +140,7 @@ class OnnxDocument implements vscode.CustomDocument {
                     if (enableOnnxToolProfiling) {
                         scriptArgs.push('true'); // enable_profiling
                         scriptArgs.push(onnxToolResultsPath); // results_dir
+                        scriptArgs.push(enableDynamicShapeHandling ? 'true' : 'false'); // enable_dynamic_shapes
                     } else {
                         scriptArgs.push('false'); // disable profiling
                     }

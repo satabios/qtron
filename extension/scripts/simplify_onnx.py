@@ -53,15 +53,18 @@ except ImportError:
 
 def main():
     if len(sys.argv) < 3:
-        print("Usage: python simplify_onnx.py <input.onnx> <output.onnx> [enable_profiling] [results_dir]")
+        print("Usage: python simplify_onnx.py <input.onnx> <output.onnx> [enable_profiling] [results_dir] [enable_dynamic_shapes]")
         sys.exit(1)
 
     input_path = sys.argv[1]
     output_path = sys.argv[2]
     enable_profiling = len(sys.argv) > 3 and sys.argv[3].lower() == 'true'
     results_dir = sys.argv[4] if len(sys.argv) > 4 else None
+    enable_dynamic_shapes = len(sys.argv) > 5 and sys.argv[5].lower() == 'true'
 
     print(f"Loading ONNX model: {input_path}")
+    if enable_profiling:
+        print(f"Dynamic shape handling: {'enabled' if enable_dynamic_shapes else 'disabled'}")
     
     # Ensure output directory exists
     output_dir = os.path.dirname(output_path)
@@ -76,8 +79,9 @@ def main():
             
             # Use profile_model directly - it handles both simplification and profiling
             if 'onnx_prof_configurable' in sys.modules:
-                # Use configurable version with custom results directory
-                profile_model(input_path, results_dir if results_dir else None, skip_simplification=False)
+                # Use configurable version with custom results directory and dynamic shape handling
+                profile_model(input_path, results_dir if results_dir else None, 
+                            skip_simplification=False, enable_dynamic_shape_handling=enable_dynamic_shapes)
             else:
                 # Use original version with results directory
                 if results_dir:

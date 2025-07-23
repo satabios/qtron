@@ -8,7 +8,7 @@
         "url": "https://github.com/satabios/onnx_viewer"
     },
     "version": "1.0.2",
-    "publisher": "blibli",
+    "publisher": "satabios",
     "icon": "onnxviewer_128.png",
     "engines": {
         "vscode": "^1.75.0"
@@ -46,6 +46,11 @@
                     "type": "string",
                     "default": "",
                     "description": "Directory path where onnx_tool analysis results are saved. If empty, saves next to the ONNX file or in temp directory."
+                },
+                "qtron.enableDynamicShapeHandling": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Enable intelligent dynamic shape handling for models with variable input sizes. Automatically tries multiple input configurations to find one that works for profiling."
                 }
             }
         },
