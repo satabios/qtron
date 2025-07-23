@@ -8,6 +8,8 @@ Why was this developed?
  * Profile the ONNX model (lets make our lives simpler).
  * I would like to automate mundane tasks in my life. Thus automated the flow.
 
+All this happens with just a click to view an ONNX file—yep, that’s what I’ve been dreaming about lately, and I finally cooked this extension!
+
 NOTE: Loading a model for the first time might take a might more time, but post to which you can happily load the lightweight profiled onnx model.
 ```
 📁 ONNX File →      🚀 strip_and_profile_model() →         👁️ Visualize
