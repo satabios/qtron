@@ -43,10 +43,12 @@ NOTE: Loading a model for the first time might take a might more time, but post 
 - Parameter count and memory size analysis
 - Export to TXT and CSV formats for further processing
 - Shape-only ONNX files for efficient analysis
+- **NEW**: Advanced dynamic shape handling for models with variable inputs
 
 **⚡ Smart Defaults**:
 - Results saved next to your ONNX file automatically
 - Graceful fallback when advanced tools unavailable
+- Intelligent handling of dynamic batch sizes and sequence lengths
 - Configurable through VS Code settings
 
 ## 🔧 Configuration
@@ -59,6 +61,7 @@ Access settings via VS Code preferences (`qtron.*`):
 | `qtron.enableSimplification` | Enable ONNX simplification | `true` |
 | `qtron.enableOnnxToolProfiling` | Enable onnx_tool profiling | `true` |
 | `qtron.onnxToolResultsPath` | Analysis results directory | Auto-detected |
+| `qtron.enableDynamicShapeHandling` | Smart handling of dynamic input shapes | `true` |
 
 ## 📁 Analysis Output
 
@@ -129,9 +132,10 @@ QTron follows an optimized processing pipeline:
 ## 🔍 Advanced Features
 
 For detailed information about the integration architecture and workflow optimization, see:
-- [Processing Flow Diagram](ONNX_PROCESSING_FLOW.md)
-- [Architecture Overview](ARCHITECTURE_DIAGRAM.md)
-- [Optimization Benefits](OPTIMIZATION_BENEFITS.md) [Optimization Benefits](OPTIMIZATION_BENEFITS.md)
+- [Processing Flow Diagram](extension/ONNX_PROCESSING_FLOW.md)
+- [Architecture Overview](extension/ARCHITECTURE_DIAGRAM.md)
+- [Optimization Benefits](extension/OPTIMIZATION_BENEFITS.md)
+- [Dynamic Shape Handling](extension/DYNAMIC_SHAPE_IMPROVEMENTS.md) - **NEW!**
 
 ## 💡 Contributing
 
