@@ -1,13 +1,13 @@
 {
     "name": "qtron",
     "displayName": "QTron",
-    "description": "The viewer for Open Neural Network Exchange(ONNX) file",
+    "description": "Qtron ONNX Simplifying and Visualization",
     "license": "MIT",
     "repository": {
         "type": "github",
-        "url": "https://github.com/satabios/onnx_viewer"
+        "url": "https://github.com/satabios/qtron"
     },
-    "version": "1.0.2",
+    "version": "1.0.3",
     "publisher": "satabios",
     "icon": "onnxviewer_128.png",
     "engines": {
