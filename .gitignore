@@ -1,5 +1,0 @@
-extension/out
-extension/node_modules
-extension/tmp
-.vscode
-extension/package-lock.json
